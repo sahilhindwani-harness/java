@@ -27,4 +27,10 @@ pipeline:
                         script: echo "hello"
                     environmentVariables: []
                     outputVariables: []
+              - step:
+                  name: step1
+                  identifier: step1
+                  template:
+                    templateRef: sahilgittemplate
+                    versionLabel: Version1
         tags: {}
