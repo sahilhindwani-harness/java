@@ -22,11 +22,11 @@ template:
       execution:
         steps:
           - step:
-              name: ff
-              identifier: ff
+              name: fd
+              identifier: fd
               template:
-                templateRef: step1
-                versionLabel: V1
+                templateRef: fdafd
+                versionLabel: V2
         rollbackSteps:
           - step:
               name: Rollback Rollout Deployment
