@@ -25,8 +25,9 @@ template:
               name: fd
               identifier: fd
               template:
-                templateRef: fdafd
-                versionLabel: V2
+                templateRef: step1
+                versionLabel: V1
+                gitBranch: master-patch-dd
         rollbackSteps:
           - step:
               name: Rollback Rollout Deployment
