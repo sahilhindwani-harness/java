@@ -22,13 +22,11 @@ template:
       execution:
         steps:
           - step:
-              name: Rollout Deployment
-              identifier: rolloutDeployment
-              type: K8sRollingDeploy
-              timeout: 10m
-              spec:
-                skipDryRun: false
-                pruningEnabled: false
+              name: ff
+              identifier: ff
+              template:
+                templateRef: step1
+                versionLabel: V1
         rollbackSteps:
           - step:
               name: Rollback Rollout Deployment
