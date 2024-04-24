@@ -1,0 +1,12 @@
+template:
+  name: step1
+  identifier: step1
+  versionLabel: V1
+  type: Step
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Wait
+    spec:
+      duration: 10m
