@@ -41,3 +41,4 @@ template:
             - AllErrors
           action:
             type: StageRollback
+  description: ggg
