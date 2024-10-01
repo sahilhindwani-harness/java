@@ -1,0 +1,47 @@
+pipeline:
+  name: TestRun
+  identifier: TestRun
+  projectIdentifier: testProject
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: stage1
+        identifier: stage1
+        description: ""
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: ShellScript
+                  name: ShellScript_1
+                  identifier: ShellScript_1
+                  spec:
+                    shell: Bash
+                    executionTarget: {}
+                    source:
+                      type: Inline
+                      spec:
+                        script: echo "hello"
+                    environmentVariables: []
+                    outputVariables: []
+                  timeout: 10m
+                  failureStrategies:
+                    - onFailure:
+                        errors:
+                          - AllErrors
+                        action:
+                          type: Retry
+                          spec:
+                            retryCount: 3
+                            retryIntervals:
+                              - 5s
+                              - 5s
+                            onRetryFailure:
+                              action:
+                                type: MarkAsSuccess
+                  strategy:
+                    repeat:
+                      times: 10
+        tags: {}
