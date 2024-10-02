@@ -3,7 +3,7 @@ pipeline:
   identifier: TestRun
   projectIdentifier: testProject
   orgIdentifier: default
-  description: "sdd"
+  description: "sddssdda"
   tags: {}
   stages:
     - stage:
