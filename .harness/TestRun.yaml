@@ -3,7 +3,7 @@ pipeline:
   identifier: TestRun
   projectIdentifier: testProject
   orgIdentifier: default
-  description: "new1"
+  description: "new2"
   tags: {}
   stages:
     - stage:
