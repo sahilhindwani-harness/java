@@ -1,0 +1,15 @@
+#Dev/Dev environment group service.yml File 
+user-provided: 
+    - name: dctrn-appdynamics-service 
+      credentials: 
+        host-name: wellsfargo-nonprod.saas.appdynamics.com 
+        port: 443 
+        account-name: <+secrets.getValue("gcpqa")>
+        account-access-key: <+secrets.getValue("gcpqa")> 
+        ssl-enabled: true 
+        application-name: DCTR_DEV_CTOReferenceApplication 
+        tier-name: DCTRN-DEV 
+    - name: jacoco-service 
+      credentials: 
+        address: 10.62.23.18 
+        port: 42389
