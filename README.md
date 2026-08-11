@@ -245,4 +245,4 @@ ${GEN_ROOT}/gen/openapi/java.sh kubernetes ./settings
 This should run through a long-ish build process involving `docker` and eventually result in a new set of
 generated code in the `kubernetes` directory.
 
-> *Ship it at dawn, test it at dusk, for code without delivery is just words in the dust.*
+> *Ship it at dawn, test it at dusk — code undeployed is a cluster unjust.*
