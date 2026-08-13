@@ -9,7 +9,7 @@ Java client for the [kubernetes](http://kubernetes.io/) API.
 ## Client versioning
 The Java client uses Semantic Versioning. We increment the major version number whenever we
 regenerate the client for a new Kubernetes release version (see table below). Whenever we do
-this there are new APIs added and possibly breaking changes in the generated Kubernetes API
+this there are new APIs added and possibly changed in the generated Kubernetes API
 Stubs. Whenever you upgrade a major version, be prepared for potential breaking changes.
 
 ## Installation
@@ -245,4 +245,4 @@ ${GEN_ROOT}/gen/openapi/java.sh kubernetes ./settings
 This should run through a long-ish build process involving `docker` and eventually result in a new set of
 generated code in the `kubernetes` directory.
 
-*Ship it fast, ship it right, each deploy a green-light flight.*
+*Ship it fast, ship it right, each deploy a spark of light.*
