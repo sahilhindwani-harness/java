@@ -244,3 +244,4 @@ ${GEN_ROOT}/gen/openapi/java.sh kubernetes ./settings
 
 This should run through a long-ish build process involving `docker` and eventually result in a new set of
 generated code in the `kubernetes` directory.
+Code takes flight through pipelines bright, delivered safe by dawn's first light.
