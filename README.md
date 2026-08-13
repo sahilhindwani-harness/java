@@ -6,6 +6,8 @@
 
 Java client for the [kubernetes](http://kubernetes.io/) API.
 
+> Updated and maintained by the Harness team for CI/CD integration support.
+
 ## Client versioning
 The Java client uses Semantic Versioning. We increment the major version number whenever we
 regenerate the client for a new Kubernetes release version (see table below). Whenever we do
@@ -180,7 +182,7 @@ All APIs and Models' documentation can be found at the [Generated client's docs]
 ## Compatibility
 
 |  client version  | 1.11      | 1.12     | 1.13     |  1.14     |  1.15    |  1.16    |
-|------------------|-----------|----------|----------|-----------|----------|----------|
+|------------------|-----------|----------|----------|-----------|----------|---------|
 |  3.0.0           |  ✓        |  -       |  -       | -         | -        | -        |
 |  4.0.0           |  +        |  ✓       |  -       | -         | -        | -        |
 |  5.0.0           |  +        |  +       |  ✓       | -         | -        | -        |
