@@ -1,0 +1,19 @@
+inputSet:
+  name: dev-deploy-java-client
+  identifier: devDeployJavaClient
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags: {}
+  description: "Self-service input set for the java-client service. Provide only serviceRef and imageTag; all infra defaults are pre-filled."
+  pipeline:
+    identifier: devFlowPipeline
+    variables:
+      - name: serviceRef
+        value: java-client
+      - name: coverageThreshold
+        value: "80"
+      - name: skipApmCheck
+        value: "false"
+      # imageTag must be supplied by the developer at trigger time:
+      # - name: imageTag
+      #   value: <your-image-tag>

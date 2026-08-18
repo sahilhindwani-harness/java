@@ -1,0 +1,61 @@
+pipeline:
+  name: dev-flow-pipeline
+  identifier: devFlowPipeline
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags: {}
+  description: "Standardised CI/CD pipeline: compile → unit test → integration test → coverage gate → K8s deploy"
+  variables:
+    - name: serviceRef
+      type: String
+      value: <+input>
+      description: "Harness service identifier"
+    - name: imageTag
+      type: String
+      value: <+input>
+      description: "Container image tag to deploy"
+    - name: coverageThreshold
+      type: String
+      default: "80"
+      value: <+input>
+      description: "JaCoCo line coverage threshold (0-100)"
+    - name: skipApmCheck
+      type: Boolean
+      default: "false"
+      value: <+input>
+      description: "Set true to bypass APM connectivity dry-run (hotfix only)"
+  stages:
+    - stage:
+        name: CI
+        identifier: CI
+        template:
+          templateRef: devFlowTemplate
+          versionLabel: v1
+          templateInputs:
+            spec:
+              variables:
+                - name: coverageThreshold
+                  type: String
+                  value: <+pipeline.variables.coverageThreshold>
+                - name: mavenArgs
+                  type: String
+                  value: ""
+    - stage:
+        name: Deploy to Dev
+        identifier: DeployToDev
+        template:
+          templateRef: stage1
+          versionLabel: V1
+          templateInputs:
+            spec:
+              environment:
+                environmentRef: dev
+                deployToAll: false
+                environmentInputs: <+input>
+                serviceOverrideInputs: <+input>
+                infrastructureDefinitions:
+                  - identifier: k8s-dev-cluster
+                    inputs: <+input>
+              service:
+                serviceRef: <+pipeline.variables.serviceRef>
+                serviceInputs: <+input>

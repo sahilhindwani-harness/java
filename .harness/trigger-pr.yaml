@@ -1,0 +1,78 @@
+trigger:
+  name: PR to Master
+  identifier: PRtoMaster
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags: {}
+  enabled: true
+  description: "Triggers on PR open/update targeting master; respects [skip ci] commit-message filter"
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        type: PullRequest
+        spec:
+          connectorRef: account.github
+          repoName: java
+          autoAbortPreviousExecutions: true
+          actions:
+            - Open
+            - Reopen
+            - Synchronize
+          payloadConditions:
+            - key: targetBranch
+              operator: Equals
+              value: master
+          headerConditions: []
+          jexlCondition: "!<+trigger.commitMessage>.contains('[skip ci]')"
+  pipelineRef: devFlowPipeline
+  pipelineBranchName: <+trigger.sourceBranch>
+  inputYaml: |
+    pipeline:
+      identifier: devFlowPipeline
+      variables:
+        - name: serviceRef
+          value: java-client
+        - name: imageTag
+          value: <+trigger.commitSha>
+        - name: coverageThreshold
+          value: "80"
+        - name: skipApmCheck
+          value: "false"
+---
+trigger:
+  name: Push All Branches
+  identifier: PushAllBranches
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags: {}
+  enabled: true
+  description: "Triggers on push to any branch; [skip ci] filter skips docs/-only changes"
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        type: Push
+        spec:
+          connectorRef: account.github
+          repoName: java
+          autoAbortPreviousExecutions: true
+          headerConditions: []
+          payloadConditions: []
+          jexlCondition: "!<+trigger.commitMessage>.contains('[skip ci]') || !<+trigger.changedFiles>.matches('docs/.*')"
+  pipelineRef: devFlowPipeline
+  pipelineBranchName: <+trigger.branch>
+  inputYaml: |
+    pipeline:
+      identifier: devFlowPipeline
+      variables:
+        - name: serviceRef
+          value: java-client
+        - name: imageTag
+          value: <+trigger.commitSha>
+        - name: coverageThreshold
+          value: "80"
+        - name: skipApmCheck
+          value: "false"
