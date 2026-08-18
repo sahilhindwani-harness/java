@@ -1,0 +1,132 @@
+template:
+  name: dev-flow-template
+  identifier: devFlowTemplate
+  versionLabel: v1
+  type: Stage
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: CI
+    spec:
+      cloneCodebase: true
+      caching:
+        enabled: true
+        key: "mvn-<+fileHash('pom.xml')>"
+        paths:
+          - ~/.m2/repository
+      execution:
+        steps:
+          - step:
+              name: Compile
+              identifier: Compile
+              type: Run
+              timeout: 15m
+              spec:
+                shell: Sh
+                command: "mvn compile -B"
+              failureStrategies:
+                - onFailure:
+                    errors:
+                      - AllErrors
+                    action:
+                      type: Abort
+          - step:
+              name: Unit Test
+              identifier: UnitTest
+              type: Run
+              timeout: 15m
+              spec:
+                shell: Sh
+                command: "mvn test -B"
+              failureStrategies:
+                - onFailure:
+                    errors:
+                      - AllErrors
+                    action:
+                      type: Retry
+                      spec:
+                        retryCount: 3
+                        retryIntervals:
+                          - 5s
+                        onRetryFailure:
+                          action:
+                            type: StageRollback
+          - step:
+              name: Integration Test
+              identifier: IntegrationTest
+              type: Run
+              timeout: 20m
+              spec:
+                shell: Sh
+                command: "mvn verify -B -DskipUnitTests"
+              failureStrategies:
+                - onFailure:
+                    errors:
+                      - AllErrors
+                    action:
+                      type: Retry
+                      spec:
+                        retryCount: 3
+                        retryIntervals:
+                          - 5s
+                        onRetryFailure:
+                          action:
+                            type: StageRollback
+          - step:
+              name: Coverage Gate
+              identifier: CoverageGate
+              type: Run
+              timeout: 10m
+              spec:
+                shell: Sh
+                command: |
+                  THRESHOLD=<+stage.variables.coverageThreshold>
+                  RATIO=$(echo "scale=2; ${THRESHOLD}/100" | bc)
+                  mvn jacoco:check \
+                    -Djacoco.haltOnFailure=true \
+                    -B 2>&1 | tee /tmp/jacoco-check.txt
+                  EXIT_CODE=${PIPESTATUS[0]}
+                  if [ $EXIT_CODE -ne 0 ]; then
+                    echo "ERROR: Coverage gate FAILED. Required line coverage: ${THRESHOLD}%"
+                    grep -E "(Rule violated|missed|FAILED)" /tmp/jacoco-check.txt | head -20 || true
+                    exit 1
+                  fi
+                  echo "Coverage gate PASSED. Threshold: ${THRESHOLD}%"
+              failureStrategies:
+                - onFailure:
+                    errors:
+                      - AllErrors
+                    action:
+                      type: Abort
+          - step:
+              name: Publish Coverage Report
+              identifier: PublishCoverageReport
+              type: Run
+              timeout: 5m
+              spec:
+                shell: Sh
+                command: |
+                  mvn jacoco:report -B
+                  echo "HTML report generated: target/site/jacoco/index.html"
+              failureStrategies:
+                - onFailure:
+                    errors:
+                      - AllErrors
+                    action:
+                      type: Ignore
+    variables:
+      - name: coverageThreshold
+        type: String
+        default: "80"
+        value: <+input>
+      - name: mavenArgs
+        type: String
+        default: ""
+        value: <+input>
+    failureStrategies:
+      - onFailure:
+          errors:
+            - AllErrors
+          action:
+            type: StageRollback

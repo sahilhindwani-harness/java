@@ -7,6 +7,31 @@ template:
   orgIdentifier: default
   tags: {}
   spec:
-    type: Wait
+    type: Run
+    timeout: 30s
     spec:
-      duration: 10m
+      shell: Sh
+      command: |
+        APP_NAME="<+service.name>-<+env.name>"
+        TIER_NAME="<+service.name>-<+env.name>"
+        echo "AppDynamics APM registration: app=${APP_NAME}, tier=${TIER_NAME}"
+        curl -sf --max-time 25 \
+          -H "Authorization: Bearer <+secrets.getValue(\"appdynamics_controller_key\")>" \
+          "https://${APPDYNAMICS_CONTROLLER_HOST_NAME}/controller/rest/applications" \
+          -o /dev/null \
+          && echo "APM connectivity check PASSED" \
+          || { echo "ERROR: APM connectivity check FAILED"; exit 1; }
+      envVariables:
+        APPDYNAMICS_CONTROLLER_HOST_NAME: wellsfargo-nonprod.saas.appdynamics.com
+        APPDYNAMICS_CONTROLLER_PORT: "443"
+        APPDYNAMICS_CONTROLLER_SSL_ENABLED: "true"
+        APPDYNAMICS_AGENT_APPLICATION_NAME: "<+service.name>-<+env.name>"
+        APPDYNAMICS_AGENT_TIER_NAME: "<+service.name>-<+env.name>"
+        APPDYNAMICS_AGENT_ACCOUNT_NAME: <+secrets.getValue("appdynamics_account_name")>
+        APPDYNAMICS_AGENT_ACCOUNT_ACCESS_KEY: <+secrets.getValue("appdynamics_account_access_key")>
+    failureStrategies:
+      - onFailure:
+          errors:
+            - AllErrors
+          action:
+            type: Abort

@@ -1,15 +1,28 @@
-#Dev/Dev environment group service.yml File 
-user-provided: 
-    - name: dctrn-appdynamics-service 
-      credentials: 
-        host-name: wellsfargo-nonprod.saas.appdynamics.com 
-        port: 443 
-        account-name: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountname")>
-        account-access-key: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountname")> 
-        ssl-enabled: true 
-        application-name: DCTR_DEV_CTOReferenceApplication 
-        tier-name: DCTRN-DEV 
-    - name: jacoco-service 
-      credentials: 
-        address: 10.62.23.18 
-        port: 42389
+# Dev/Dev environment group service config
+# Credentials are injected via Harness secrets at runtime — no plaintext values here
+user-provided:
+  - name: dctrn-appdynamics-service
+    credentials:
+      host-name: wellsfargo-nonprod.saas.appdynamics.com
+      port: 443
+      account-name: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountname")>
+      account-access-key: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountaccesskey")>
+      ssl-enabled: true
+      # application-name and tier-name are derived at runtime as <+service.name>-<+env.name>
+      application-name: <+service.name>-<+env.name>
+      tier-name: <+service.name>-<+env.name>
+  - name: jacoco-service
+    credentials:
+      address: 10.62.23.18
+      port: 42389
+
+pipeline:
+  jacoco:
+    threshold: 80
+    report-path: target/site/jacoco/index.html
+  budget:
+    max-ci-duration-minutes: 15
+    coverage-gate-timeout-minutes: 10
+  retry:
+    count: 3
+    interval-seconds: 5
