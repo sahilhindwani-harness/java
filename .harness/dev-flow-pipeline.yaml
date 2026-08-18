@@ -1,0 +1,58 @@
+pipeline:
+  name: dev flow pipeline
+  identifier: dev_flow_pipeline
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags:
+    ai_generated: ""
+  inputs:
+    serviceRef:
+      type: string
+    environmentRef:
+      type: string
+    infraRef:
+      type: string
+    imageTag:
+      type: string
+    coverageThreshold:
+      type: number
+      default: 80
+    retryTimes:
+      type: number
+      default: 3
+    retryInterval:
+      type: string
+      default: 5s
+    skipApmCheck:
+      type: boolean
+      default: false
+  stages:
+    - name: CI
+      template:
+        uses: dev_flow_template
+        with:
+          coverageThreshold: ${{ inputs.coverageThreshold }}
+          retryTimes: ${{ inputs.retryTimes }}
+          retryInterval: ${{ inputs.retryInterval }}
+
+    - name: CD
+      service: ${{ inputs.serviceRef }}
+      environment: ${{ inputs.environmentRef }}
+      infrastructure: ${{ inputs.infraRef }}
+      steps:
+        - action:
+            uses: kubernetes-rolling-deploy
+            with:
+              dry-run: false
+        - run:
+            id: log_rollback_image
+            name: Log Rollback Image Tag
+            script: |
+              echo "Deployed image tag: ${{ inputs.imageTag }}"
+              echo "Previous image tag available for rollback via Kubernetes rollout history."
+            on-failure:
+              errors: all
+              action: ignore
+      on-failure:
+        errors: all
+        action: stage-rollback

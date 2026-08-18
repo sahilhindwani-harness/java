@@ -1,0 +1,23 @@
+inputSet:
+  name: dev deploy java client
+  identifier: dev_deploy_java_client
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags:
+    ai_generated: ""
+  description: >-
+    Self-service input set for developers deploying the kubernetes-java-client service.
+    Supply only serviceRef and imageTag; all infrastructure defaults are pre-filled.
+  pipelineIdentifier: dev_flow_pipeline
+  inputSetReferences: []
+  pipeline:
+    identifier: dev_flow_pipeline
+    inputs:
+      serviceRef: kubernetes-java-client
+      environmentRef: dev
+      infraRef: k8s-dev-infra
+      imageTag: latest
+      coverageThreshold: 80
+      retryTimes: 3
+      retryInterval: 5s
+      skipApmCheck: false

@@ -1,0 +1,31 @@
+trigger:
+  name: PR and Push Trigger
+  identifier: pr_and_push_trigger
+  enabled: true
+  orgIdentifier: default
+  projectIdentifier: sahilgitSync
+  tags:
+    ai_generated: ""
+  pipelineIdentifier: dev_flow_pipeline
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        connectorRef: account.github
+        autoAbortPreviousExecutions: true
+        payloadConditions:
+          - key: commitMessage
+            operator: NotContains
+            value: "[skip ci]"
+        headerConditions: []
+        actions:
+          - Push
+          - PullRequestOpened
+          - PullRequestEdited
+          - PullRequestSynchronized
+          - PullRequestReopened
+        pushBranchFilters:
+          - ".*"
+        pullRequestTargetBranchFilters:
+          - master
