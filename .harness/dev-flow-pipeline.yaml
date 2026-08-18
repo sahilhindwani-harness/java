@@ -1,0 +1,39 @@
+pipeline:
+  name: Dev Flow Pipeline
+  identifier: devFlowPipeline
+  tags:
+    ai_generated: ""
+  repo:
+    connector: account.github
+    name: kubernetes-client/java
+  clone:
+    depth: 1
+  inputs:
+    repeat_times:
+      type: number
+      default: 1
+  stages:
+  - name: ci
+    template:
+      uses: devFlowCIStage
+      with:
+        coverageThreshold: 80
+        repeatTimes: ${{ inputs.repeat_times }}
+        mavenArgs: ""
+
+  - name: deploy
+    if: ${{ branch == "master" }}
+    service: kubernetes-java-client
+    environment: production
+    steps:
+    - action:
+        uses: manifest-download
+    - action:
+        uses: manifest-bake
+    - action:
+        uses: kubernetes-rolling-deploy
+        with:
+          dry-run: false
+    on-failure:
+      errors: all
+      action: rollback

@@ -1,0 +1,63 @@
+# Webhook trigger: fires on GitHub pull_request events targeting master
+trigger:
+  name: Dev Flow PR to Master
+  identifier: devFlowPRToMaster
+  enabled: true
+  tags:
+    ai_generated: ""
+  pipelineIdentifier: devFlowPipeline
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        type: PullRequest
+        spec:
+          connectorRef: account.github
+          autoAbortPreviousExecutions: true
+          payloadConditions:
+          - key: targetBranch
+            operator: Equals
+            value: master
+          - key: commitMessage
+            operator: NotContains
+            value: "[skip ci]"
+          headerConditions: []
+          actions:
+          - Open
+          - Reopen
+          - Synchronize
+  inputYaml: |
+    pipeline:
+      identifier: devFlowPipeline
+      inputs:
+        repeat_times: "1"
+---
+# Webhook trigger: fires on GitHub push events to any branch
+trigger:
+  name: Dev Flow Branch Push
+  identifier: devFlowBranchPush
+  enabled: true
+  tags:
+    ai_generated: ""
+  pipelineIdentifier: devFlowPipeline
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        type: Push
+        spec:
+          connectorRef: account.github
+          autoAbortPreviousExecutions: false
+          payloadConditions:
+          - key: commitMessage
+            operator: NotContains
+            value: "[skip ci]"
+          branchName: ".*"
+          headerConditions: []
+  inputYaml: |
+    pipeline:
+      identifier: devFlowPipeline
+      inputs:
+        repeat_times: "1"
