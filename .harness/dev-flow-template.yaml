@@ -1,0 +1,136 @@
+pipeline:
+  name: dev-flow-template
+  identifier: dev_flow_template
+  tags:
+    ai_generated: ""
+  inputs:
+    maven_opts:
+      type: string
+      default: "-Xmx2g"
+    artifact_repo:
+      type: string
+      default: "harness-artifact-registry"
+    deploy_env:
+      type: string
+      default: "staging"
+    retry_attempts:
+      type: number
+      default: 3
+    retry_interval:
+      type: string
+      default: "5s"
+  stages:
+  - name: ci
+    runtime: cloud
+    platform:
+      os: linux
+      arch: amd64
+    timeout: 12m
+    steps:
+
+    # Step 1 — Lint / Static Analysis
+    - name: lint
+      run:
+        container: maven:3.9-eclipse-temurin-17
+        script: mvn checkstyle:check spotbugs:check
+        env:
+          MAVEN_OPTS: ${{ inputs.maven_opts }}
+      on-failure:
+        errors: all
+        action:
+          retry:
+            attempts: ${{ inputs.retry_attempts }}
+            interval: ${{ inputs.retry_interval }}
+            failure-action: abort
+
+    # Steps 2 & 3 — Unit Tests + Integration Tests (parallel)
+    - parallel:
+        steps:
+        - name: unit-test
+          run-test:
+            container: maven:3.9-eclipse-temurin-17
+            script: mvn test -Dsurefire.failIfNoSpecifiedTests=false
+            env:
+              MAVEN_OPTS: ${{ inputs.maven_opts }}
+            report:
+              type: junit
+              path: target/surefire-reports/*.xml
+          on-failure:
+            errors: all
+            action:
+              retry:
+                attempts: ${{ inputs.retry_attempts }}
+                interval: ${{ inputs.retry_interval }}
+                failure-action: abort
+
+        - name: integration-test
+          run-test:
+            container: maven:3.9-eclipse-temurin-17
+            script: mvn verify -P integration-tests
+            env:
+              MAVEN_OPTS: ${{ inputs.maven_opts }}
+            report:
+              type: junit
+              path: target/failsafe-reports/*.xml
+          on-failure:
+            errors: all
+            action:
+              retry:
+                attempts: ${{ inputs.retry_attempts }}
+                interval: ${{ inputs.retry_interval }}
+                failure-action: abort
+
+    # Step 4 — Maven Build
+    - name: build
+      run:
+        container: maven:3.9-eclipse-temurin-17
+        script: mvn package -DskipTests
+        env:
+          MAVEN_OPTS: ${{ inputs.maven_opts }}
+      on-failure:
+        errors: all
+        action:
+          retry:
+            attempts: ${{ inputs.retry_attempts }}
+            interval: ${{ inputs.retry_interval }}
+            failure-action: abort
+
+    # Step 5 — Artifact Upload
+    - name: artifact-upload
+      id: artifact-upload
+      run:
+        container: maven:3.9-eclipse-temurin-17
+        script: |
+          if [ "${{ pipeline.trigger.sourceBranch }}" = "master" ]; then
+            ARTIFACT_TAG="release-candidate-${{ pipeline.sequenceId }}"
+          else
+            ARTIFACT_TAG="snapshot-${{ pipeline.executionId }}"
+          fi
+          echo "artifact_tag=${ARTIFACT_TAG}" >> $HARNESS_OUTPUT
+          mvn deploy:deploy-file \
+            -DgroupId=io.kubernetes \
+            -DartifactId=client-java \
+            -Dversion=${ARTIFACT_TAG} \
+            -Dpackaging=jar \
+            -Dfile=$(ls target/*.jar | head -1) \
+            -DrepositoryId=${{ inputs.artifact_repo }} \
+            -Durl=harness://artifact-registry/${{ inputs.artifact_repo }}
+        output: [artifact_tag]
+      on-failure:
+        errors: all
+        action:
+          retry:
+            attempts: ${{ inputs.retry_attempts }}
+            interval: ${{ inputs.retry_interval }}
+            failure-action: abort
+
+  # CD Stage — master merges only (AC-8)
+  - name: cd
+    if: ${{ pipeline.trigger.sourceBranch == "master" }}
+    service: java-kubernetes-client
+    environment: ${{ inputs.deploy_env }}
+    steps:
+    - action:
+        uses: kubernetes-rolling-deploy
+        with:
+          dry-run: false

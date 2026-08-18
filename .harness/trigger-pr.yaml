@@ -1,0 +1,24 @@
+trigger:
+  name: pr-and-push-trigger
+  identifier: pr_and_push_trigger
+  enabled: true
+  tags:
+    ai_generated: ""
+  orgIdentifier: default
+  pipeline:
+    identifier: dev_flow_pipeline
+  source:
+    type: Webhook
+    spec:
+      type: Github
+      spec:
+        connectorRef: account.github
+        repoName: sahilhindwani-harness/java
+        autoAbortPreviousExecutions: true
+        payloadConditions: []
+        headerConditions: []
+        actions:
+        - Push
+        - PullRequestOpened
+        - PullRequestSynchronized
+        - PullRequestReopened

@@ -1,0 +1,22 @@
+pipeline:
+  name: dev-flow-pipeline
+  identifier: dev_flow_pipeline
+  tags:
+    ai_generated: ""
+  # Triggers are managed by .harness/trigger-pr.yaml.
+  # Inline triggers shown here for documentation clarity (AC-1).
+  on:
+  - push:
+      branches: [".*"]
+  - pull_request:
+      events: [opened, synchronize, reopened]
+  stages:
+  # Reference the canonical template; supply project-specific inputs (AC-6).
+  - template:
+      uses: dev_flow_template
+      with:
+        maven_opts: "-Xmx2g"
+        artifact_repo: "harness-artifact-registry"
+        deploy_env: "staging"
+        retry_attempts: 3
+        retry_interval: "5s"
