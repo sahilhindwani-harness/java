@@ -1,0 +1,135 @@
+template:
+  name: dev flow template
+  identifier: dev_flow_template
+  versionLabel: "1.0.0"
+  type: Stage
+  projectIdentifier: sahilgitSync
+  orgIdentifier: default
+  tags:
+    ai_generated: ""
+  spec:
+    cache:
+      path: target
+      key: maven.${{ hashFiles('**/pom.xml') }}
+    inputs:
+      coverageThreshold:
+        type: number
+        default: 80
+      retryTimes:
+        type: number
+        default: 3
+      retryInterval:
+        type: string
+        default: 5s
+      mavenArgs:
+        type: string
+        default: ""
+      apmValidationTimeoutMinutes:
+        type: number
+        default: 5
+    steps:
+      - run:
+          id: compile
+          name: Compile
+          container: maven:3.9-eclipse-temurin-17
+          script: mvn -B ${{ inputs.mavenArgs }} compile
+          on-failure:
+            errors: all
+            action: abort
+
+      - run:
+          id: unit_test
+          name: Unit Test
+          container: maven:3.9-eclipse-temurin-17
+          script: mvn -B ${{ inputs.mavenArgs }} test
+          on-failure:
+            errors: all
+            action:
+              retry:
+                attempts: ${{ inputs.retryTimes }}
+                interval: ${{ inputs.retryInterval }}
+                failure-action: fail
+
+      - run:
+          id: integration_test
+          name: Integration Test
+          container: maven:3.9-eclipse-temurin-17
+          script: mvn -B ${{ inputs.mavenArgs }} verify -Pfailsafe
+          on-failure:
+            errors: all
+            action:
+              retry:
+                attempts: ${{ inputs.retryTimes }}
+                interval: ${{ inputs.retryInterval }}
+                failure-action: fail
+
+      - run:
+          id: coverage_gate
+          name: Coverage Gate
+          container: maven:3.9-eclipse-temurin-17
+          script: |
+            REPORT="target/site/jacoco/jacoco.xml"
+            if [ ! -f "$REPORT" ]; then
+              echo "ERROR: JaCoCo report not found at $REPORT"
+              exit 1
+            fi
+            COVERED=$(grep -oP 'type="LINE".*?covered="\K[0-9]+' "$REPORT" | awk '{s+=$1} END{print s+0}')
+            MISSED=$(grep -oP 'type="LINE".*?missed="\K[0-9]+' "$REPORT" | awk '{s+=$1} END{print s+0}')
+            TOTAL=$((COVERED + MISSED))
+            if [ "$TOTAL" -eq 0 ]; then
+              echo "ERROR: No line coverage data found in JaCoCo report."
+              exit 1
+            fi
+            PCT=$(echo "scale=2; $COVERED * 100 / $TOTAL" | bc)
+            echo "Line coverage: ${PCT}% (required: ${{ inputs.coverageThreshold }}%)"
+            PASS=$(echo "$PCT >= ${{ inputs.coverageThreshold }}" | bc)
+            if [ "$PASS" -ne 1 ]; then
+              echo "FAILED: ${PCT}% is below the required ${{ inputs.coverageThreshold }}% threshold"
+              exit 1
+            fi
+            echo "PASSED: ${PCT}% meets the ${{ inputs.coverageThreshold }}% threshold"
+          on-failure:
+            errors: all
+            action: abort
+
+      - run:
+          id: publish_report
+          name: Publish JaCoCo Report
+          container: maven:3.9-eclipse-temurin-17
+          script: |
+            echo "JaCoCo HTML report available at: target/site/jacoco/index.html"
+            echo "XML report available at: target/site/jacoco/jacoco.xml"
+          on-failure:
+            errors: all
+            action: ignore
+
+      - run:
+          id: apm_validate
+          name: APM Validate
+          container: curlimages/curl:8.7.1
+          env:
+            APM_HOST: wellsfargo-nonprod.saas.appdynamics.com
+            APM_PORT: "443"
+            APM_ACCOUNT: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountname")>
+            APM_ACCESS_KEY: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountaccesskey")>
+          script: |
+            TIMEOUT_MINS=${{ inputs.apmValidationTimeoutMinutes }}
+            DEADLINE=$(($(date +%s) + TIMEOUT_MINS * 60))
+            echo "Waiting up to ${TIMEOUT_MINS}m for AppDynamics tier to respond..."
+            while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                --max-time 10 \
+                -u "${APM_ACCOUNT}@wellsfargo-nonprod:${APM_ACCESS_KEY}" \
+                "https://${APM_HOST}:${APM_PORT}/controller/rest/applications?output=JSON")
+              if [ "$HTTP_STATUS" -eq 200 ]; then
+                echo "AppDynamics reachable (HTTP $HTTP_STATUS)"
+                exit 0
+              fi
+              echo "HTTP $HTTP_STATUS — tier not ready, retrying in 30s..."
+              sleep 30
+            done
+            echo "ERROR: AppDynamics tier unreachable after ${TIMEOUT_MINS} minutes"
+            exit 1
+          on-failure:
+            errors: all
+            action: stage-rollback
