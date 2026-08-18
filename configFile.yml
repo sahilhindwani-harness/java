@@ -1,15 +1,25 @@
-#Dev/Dev environment group service.yml File 
-user-provided: 
-    - name: dctrn-appdynamics-service 
-      credentials: 
-        host-name: wellsfargo-nonprod.saas.appdynamics.com 
-        port: 443 
-        account-name: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountname")>
-        account-access-key: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountname")> 
-        ssl-enabled: true 
-        application-name: DCTR_DEV_CTOReferenceApplication 
-        tier-name: DCTRN-DEV 
-    - name: jacoco-service 
-      credentials: 
-        address: 10.62.23.18 
-        port: 42389
+# Runtime config for dev-flow pipeline.
+# Non-sensitive values only — credentials use <+secrets.getValue(...)> in pipeline YAML.
+
+jacoco:
+  threshold: 80           # minimum line coverage % enforced by coverage-gate step (AC-5)
+  report-path: target/site/jacoco/jacoco.xml
+  report-html: target/site/jacoco/index.html
+
+appdynamics:
+  controller-host: wellsfargo-nonprod.saas.appdynamics.com
+  controller-port: 443
+  application-name: DCTR_DEV_CTOReferenceApplication
+  tier-name: DCTRN-DEV
+  ssl-enabled: true
+  # Credentials sourced from Vault — NOT stored here (AC-6):
+  #   account-name:       <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountname")>
+  #   account-access-key: <+secrets.getValue("appdynamics_api_key")>
+
+pipeline:
+  max-repeat-times: 10    # upper bound for repeat_times input (AC-8)
+  timeout-minutes: 15     # target wall-clock budget per run (AC-9)
+
+jacoco-service:
+  address: 10.62.23.18
+  port: 42389

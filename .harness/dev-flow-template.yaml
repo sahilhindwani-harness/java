@@ -1,0 +1,101 @@
+template:
+  name: Dev Flow CI Stage
+  identifier: devFlowCIStage
+  versionLabel: "1.0.0"
+  type: Stage
+  inputs:
+    coverageThreshold:
+      type: number
+      default: 80
+    repeatTimes:
+      type: number
+      default: 1
+    mavenArgs:
+      type: string
+      default: ""
+  spec:
+    runtime: cloud
+    platform:
+      os: linux
+      arch: amd64
+    cache:
+      key: maven.${{ hashFiles('**/pom.xml') }}
+      paths:
+        - ~/.m2/repository
+    steps:
+    - name: build
+      run:
+        container: maven:3.8.6-openjdk-11-slim
+        script: mvn install -DskipTests=false -B -V
+
+    - name: test
+      strategy:
+        repeat:
+          times: ${{ inputs.repeatTimes }}
+      run:
+        container: maven:3.8.6-openjdk-11-slim
+        script: mvn test ${{ inputs.mavenArgs }} -B
+        report:
+          type: junit
+          path: "**/target/surefire-reports/*.xml"
+      on-failure:
+        errors: all
+        action:
+          retry:
+            attempts: 3
+            interval: 5s
+            failure-action: fail
+
+    - name: coverage-gate
+      run:
+        container: maven:3.8.6-openjdk-11-slim
+        script: |
+          JACOCO_XML="target/site/jacoco/jacoco.xml"
+          if [ ! -f "$JACOCO_XML" ]; then
+            echo "ERROR: JaCoCo report not found at ${JACOCO_XML}"
+            exit 1
+          fi
+          MISSED=$(xmllint --xpath 'string(//report/counter[@type="LINE"]/@missed)' "$JACOCO_XML" 2>/dev/null || echo "0")
+          COVERED=$(xmllint --xpath 'string(//report/counter[@type="LINE"]/@covered)' "$JACOCO_XML" 2>/dev/null || echo "0")
+          TOTAL=$((MISSED + COVERED))
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "ERROR: No LINE coverage data found in JaCoCo report"
+            exit 1
+          fi
+          PCT=$(( COVERED * 100 / TOTAL ))
+          THRESHOLD=${{ inputs.coverageThreshold }}
+          echo "Line coverage: ${PCT}%  (required >= ${THRESHOLD}%)"
+          if [ "$PCT" -lt "$THRESHOLD" ]; then
+            echo "FAIL: Coverage ${PCT}% is below required threshold ${THRESHOLD}%"
+            exit 1
+          fi
+          echo "PASS: Coverage gate satisfied"
+
+    - name: upload-jacoco-report
+      run:
+        container: maven:3.8.6-openjdk-11-slim
+        script: |
+          REPORT_DIR="target/site/jacoco"
+          echo "JaCoCo HTML report location: ${REPORT_DIR}/index.html"
+          ls -lh "${REPORT_DIR}/" 2>/dev/null || echo "Warning: report directory not found"
+
+    - name: apm-deployment-marker
+      run:
+        container: curlimages/curl:8.7.1
+        script: |
+          curl -sf --max-time 10 -X POST \
+            "https://${APM_CONTROLLER}/rest/applications/${APM_APP_NAME}/events" \
+            -H "Content-Type: application/json" \
+            -H "X-Events-API-AccountName: ${APM_ACCOUNT}" \
+            -H "X-Events-API-Key: ${APM_API_KEY}" \
+            -d "{\"summary\":\"CI build ${{ pipeline.sequenceId }} on branch ${{ branch }}\",\"eventtype\":\"info\",\"severityLevel\":\"INFO\"}" \
+          && echo "APM deployment marker posted successfully" \
+          || echo "WARN: APM post failed (non-blocking, pipeline continues)"
+        env:
+          APM_API_KEY: <+secrets.getValue("appdynamics_api_key")>
+          APM_ACCOUNT: <+secrets.getValue("hashicorpvault://appdctrn_hehv_p/DCTRN/non-prod/appdynamics#accountname")>
+          APM_CONTROLLER: wellsfargo-nonprod.saas.appdynamics.com
+          APM_APP_NAME: DCTR_DEV_CTOReferenceApplication
+      on-failure:
+        errors: all
+        action: ignore
