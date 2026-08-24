@@ -6,6 +6,10 @@
 
 Java client for the [kubernetes](http://kubernetes.io/) API.
 
+> **Note:** New to this client? Check the [Example](#example) section below for
+> ready-to-run snippets covering configuration, watches, and streaming before
+> diving into the full API docs.
+
 ## Client versioning
 The Java client uses Semantic Versioning. We increment the major version number whenever we
 regenerate the client for a new Kubernetes release version (see table below). Whenever we do
