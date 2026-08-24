@@ -245,4 +245,4 @@ ${GEN_ROOT}/gen/openapi/java.sh kubernetes ./settings
 This should run through a long-ish build process involving `docker` and eventually result in a new set of
 generated code in the `kubernetes` directory.
 
-Small commits ship soft, like snow — each one compiling trust before the next.
+Small commits ship softly, like snow — each one compiling trust before the next.
