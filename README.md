@@ -245,4 +245,4 @@ ${GEN_ROOT}/gen/openapi/java.sh kubernetes ./settings
 This should run through a long-ish build process involving `docker` and eventually result in a new set of
 generated code in the `kubernetes` directory.
 
-Each commit a step forward, each deploy sets sail — code flows to production beyond the final mile.
+Each commit a step forward, each deploy sets sail, code flows to production beyond the final mile.
